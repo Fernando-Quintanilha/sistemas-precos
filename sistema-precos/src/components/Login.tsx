@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { auth } from '../firebase';
+import { db, auth } from '../firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
 
 export default function Login() {
     const [email, setEmail] = useState('');
@@ -11,8 +12,16 @@ export default function Login() {
         e.preventDefault();
         try {
             if (isRegistering) {
-                await createUserWithEmailAndPassword(auth, email, password);
-                alert("Conta criada com sucesso!");
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+
+                await setDoc(doc(db, "usuarios", user.uid), {
+                    email: user.email,
+                    creditos: 50,
+                    criadoEm: new Date()
+                });
+
+                alert("Conta criada com 50 créditos de brinde!");
             } else {
                 await signInWithEmailAndPassword(auth, email, password);
             }
