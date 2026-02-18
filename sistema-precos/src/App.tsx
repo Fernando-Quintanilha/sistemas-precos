@@ -13,7 +13,7 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [plano, setPlano] = useState<'starter' | 'pro'>('starter');
   const [produtos, setProdutos] = useState<any[]>([]);
-  
+
 
   const CONFIG_PLANOS = {
     starter: { limite: 300, custo: 25 },
@@ -21,7 +21,7 @@ function App() {
   };
 
   const handleData = (data: any[]) => {
-const limiteAtual = CONFIG_PLANOS[plano].limite;
+    const limiteAtual = CONFIG_PLANOS[plano].limite;
 
     if (data.length > limiteAtual) {
       alert(`Seu plano ${plano.toUpperCase()} permite apenas ${limiteAtual} SKUs por mês. Sua planilha tem ${data.length}.`);
@@ -56,7 +56,6 @@ const limiteAtual = CONFIG_PLANOS[plano].limite;
     if (user && produtos.length > 0 && creditos >= configAtual.custo) {
       setLoading(true);
       try {
-        // Cria a fila para o Scraper Python
         await addDoc(collection(db, "processamentos"), {
           usuarioId: user.uid,
           email: user.email,
@@ -67,7 +66,6 @@ const limiteAtual = CONFIG_PLANOS[plano].limite;
           dataCriacao: serverTimestamp()
         });
 
-        // Desconto dinâmico: 25 para Starter, 50 para Pro
         const userRef = doc(db, "usuarios", user.uid);
         await updateDoc(userRef, {
           creditos: increment(-configAtual.custo)
@@ -96,6 +94,20 @@ const limiteAtual = CONFIG_PLANOS[plano].limite;
     const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
     const data = new Blob([excelBuffer], { type: "application/octet-stream" });
     saveAs(data, "relatorio_nexsell.xlsx");
+  };
+
+  const baixarModelo = () => {
+    // Criamos uma planilha com apenas a coluna que o Scraper precisa
+    const worksheet = XLSX.utils.json_to_sheet([
+      { "Produto": "Exemplo: iPhone 15 128GB" },
+      { "Produto": "Exemplo: Fritadeira Philco 4L" }
+    ]);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Modelo_Busca");
+
+    const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+    const data = new Blob([excelBuffer], { type: "application/octet-stream" });
+    saveAs(data, "modelo_nexsell.xlsx");
   };
 
   return (
@@ -137,6 +149,17 @@ const limiteAtual = CONFIG_PLANOS[plano].limite;
             </p>
           </div>
 
+          <div className="flex justify-between items-center mb-1 px-1">
+            <span className="text-xs font-semibold text-slate-400 uppercase tracking-tight">Passo 1:</span>
+            <button
+              onClick={baixarModelo}
+              className="text-xs font-bold text-blue-600 hover:text-blue-800 underline transition-colors"
+            >
+              Baixar planilha modelo
+            </button>
+          </div>
+          <ExcelUpload onDataLoaded={handleData} />
+
           <div className="mb-2">
             <ExcelUpload onDataLoaded={handleData} />
             {produtos.length > 0 && (
@@ -151,8 +174,8 @@ const limiteAtual = CONFIG_PLANOS[plano].limite;
               onClick={iniciarProcessamento}
               disabled={creditos < CONFIG_PLANOS[plano].custo || loading || produtos.length === 0}
               className={`w-full py-4 rounded-xl font-bold text-white transition-all shadow-lg ${creditos >= CONFIG_PLANOS[plano].custo && produtos.length > 0 && !loading
-                  ? 'bg-blue-600 hover:bg-blue-700 active:scale-95'
-                  : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
+                ? 'bg-blue-600 hover:bg-blue-700 active:scale-95'
+                : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
                 }`}
             >
               {loading ? "Processando..." : `Iniciar Processamento (${CONFIG_PLANOS[plano].custo} créditos)`}
